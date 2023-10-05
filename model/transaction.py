@@ -3,9 +3,9 @@ import datetime as dt
 from marshmallow import Schema, fields
 
 class Transaction(object):
-    def __init__(self, order_id, data_acquisto, asin, quantity, sales_channel, type):
+    def __init__(self, order_id, purchase_date, asin, quantity, sales_channel, type):
         self.order_id = order_id
-        self.data_acquisto = data_acquisto
+        self.purchase_date = purchase_date
         self.asin = asin
         self.quantity = quantity
         self.sales_channel = sales_channel
@@ -18,7 +18,7 @@ class Transaction(object):
 
 class TransactionSchema(Schema):
     order_id = fields.Str()
-    data_acquisto = fields.Date()
+    purchase_date = fields.Date()
     asin = fields.Str()
     quantity = fields.Number()
     sales_channel = fields.Str()
