@@ -16,6 +16,8 @@ def load_credentials():
         print(f"Error decoding JSON in credentials.json")
         return None
 
+# **ORDERS** #
+
 def get_orders_database(from_date, to_date, asin):
 
     from_date = datetime.strptime(from_date, "%Y-%m-%d").astimezone(timezone.utc)
@@ -77,6 +79,22 @@ def delete_orders_database(order_ids):
     except(Exception, psycopg2.Error) as err:
         return {'msg': "Error while interacting with PostgreSQL...\n",'err': str(err)}, 400
 
+def delete_all_orders_database():
+    print(f'Deleting all orders in database')
+    credentials = load_credentials()
+    conn = psycopg2.connect(f"dbname={credentials.get('dbname')} user={credentials.get('user')} host='{credentials.get('host')}' password='{credentials.get('password')}'")
+    cur = conn.cursor()
+
+    delete_query = f"DELETE FROM orders"
+    try:
+        cur.execute(delete_query)
+        conn.commit()
+        return {'msg': f"Database updated"}, 200
+    except(Exception, psycopg2.Error) as err:
+        return {'msg': "Error while interacting with PostgreSQL...\n",'err': str(err)}, 400
+    
+# **REFUNDS** #
+
 def get_refunds_database(from_date, to_date, asin):
 
     from_date = datetime.strptime(from_date, "%Y-%m-%d").astimezone(timezone.utc)
@@ -121,7 +139,7 @@ def insert_refunds_database(refunds):
         return {'msg': "Error while interacting with PostgreSQL...\n",'err': str(err)}, 400
 
 def delete_refunds_database(order_ids):
-    print(f'Deleting {len(order_ids)} orders in database')
+    print(f'Deleting {len(order_ids)} refunds in database')
     credentials = load_credentials()
     conn = psycopg2.connect(f"dbname={credentials.get('dbname')} user={credentials.get('user')} host='{credentials.get('host')}' password='{credentials.get('password')}'")
     cur = conn.cursor()
@@ -132,5 +150,19 @@ def delete_refunds_database(order_ids):
         cur.execute(delete_query, tuple(order_ids))
         conn.commit()
         return {'msg': f"Database updated with {len(order_ids)} deletetions"}, 200
+    except(Exception, psycopg2.Error) as err:
+        return {'msg': "Error while interacting with PostgreSQL...\n",'err': str(err)}, 400
+
+def delete_all_refunds_database():
+    print(f'Deleting all refunds in database')
+    credentials = load_credentials()
+    conn = psycopg2.connect(f"dbname={credentials.get('dbname')} user={credentials.get('user')} host='{credentials.get('host')}' password='{credentials.get('password')}'")
+    cur = conn.cursor()
+
+    delete_query = f"DELETE FROM refunds"
+    try:
+        cur.execute(delete_query)
+        conn.commit()
+        return {'msg': f"Database updated"}, 200
     except(Exception, psycopg2.Error) as err:
         return {'msg': "Error while interacting with PostgreSQL...\n",'err': str(err)}, 400

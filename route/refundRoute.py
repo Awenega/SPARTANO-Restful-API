@@ -1,7 +1,7 @@
 from flask import Blueprint, make_response, jsonify, request
 from model.refund import RefundSchema
 from model.transaction_type import TransactionType
-from database.query import get_refunds_database, insert_refunds_database, delete_refunds_database
+from database.query import get_refunds_database, insert_refunds_database, delete_refunds_database, delete_all_refunds_database
 
 refund_bp = Blueprint('refund_bp', __name__)
 
@@ -34,4 +34,10 @@ def refunds():
         order_ids = request.json['order_ids']
         msg, code = delete_refunds_database(order_ids)
 
+        return make_response(jsonify(msg), code)
+
+@refund_bp.route('/refunds-all', methods=['DELETE'])
+def delete_all_refunds():
+    if request.method == 'DELETE':
+        msg, code = delete_all_refunds_database()
         return make_response(jsonify(msg), code)

@@ -1,7 +1,7 @@
 from flask import Blueprint, make_response, jsonify, request
 from model.order import OrderSchema
 from model.transaction_type import TransactionType
-from database.query import get_orders_database, insert_orders_database, delete_orders_database
+from database.query import get_orders_database, insert_orders_database, delete_orders_database, delete_all_orders_database
 
 order_bp = Blueprint('order_bp', __name__)
 
@@ -35,4 +35,10 @@ def orders():
         order_ids = request.json['order_ids']
         msg, code = delete_orders_database(order_ids)
 
+        return make_response(jsonify(msg), code)
+
+@order_bp.route('/orders-all', methods=['DELETE'])
+def delete_all_orders():
+    if request.method == 'DELETE':
+        msg, code = delete_all_orders_database()
         return make_response(jsonify(msg), code)
