@@ -96,3 +96,26 @@ def get_refunds_database(from_date, to_date, asin):
         refunds.append(refund)
     print(len(refunds))
     return refunds
+
+def insert_refunds_database(refunds):
+    print(f'Inserting {len(refunds)} orders in database')
+    dataInsertionTuples = []
+    credentials = load_credentials()
+    conn = psycopg2.connect(f"dbname={credentials.get('dbname')} user={credentials.get('user')} host='{credentials.get('host')}' password='{credentials.get('password')}'")
+    cur = conn.cursor()
+
+    for refund in refunds:
+        tmp = (refund.order_id, refund.purchase_date, refund.asin, refund.quantity, 
+               refund.sales_channel, refund.comm_venditore, refund.comm_refund, refund.loss)
+        dataInsertionTuples.append(tmp)
+    dataText = ','.join(cur.mogrify("(%s, %s, %s, %s, %s, %s, %s, %s)", row).decode("utf-8") for row in dataInsertionTuples)
+    sqlTxt = """INSERT INTO refunds VALUES {0} ON CONFLICT (order_id, asin) DO UPDATE SET 
+                                            (purchase_date, quantity, sales_channel, comm_venditore,comm_refund, loss) = 
+                                            (EXCLUDED.purchase_date, EXCLUDED.quantity, EXCLUDED.sales_channel, 
+                                            EXCLUDED.comm_venditore, EXCLUDED.comm_refund, EXCLUDED.loss);""".format(dataText)
+    try:
+        cur.execute(sqlTxt)
+        conn.commit()
+        return {'msg': f"Database updated with {len(refunds)} insertions"}, 200
+    except(Exception, psycopg2.Error) as err:
+        return {'msg': "Error while interacting with PostgreSQL...\n",'err': str(err)}, 400

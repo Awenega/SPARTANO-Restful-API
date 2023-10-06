@@ -15,7 +15,7 @@ class Refund(Transaction):
 
 
 class RefundSchema(TransactionSchema):
-    comm_segnalazione = fields.Float()
+    comm_venditore = fields.Float()
     comm_refund = fields.Float()
     loss = fields.Float()
     @post_load

@@ -1,11 +1,11 @@
 from flask import Blueprint, make_response, jsonify, request
 from model.refund import RefundSchema
 from model.transaction_type import TransactionType
-from database.query import get_refunds_database
+from database.query import get_refunds_database, insert_refunds_database
 
 refund_bp = Blueprint('refund_bp', __name__)
 
-@refund_bp.route('/refunds', methods=['GET'])
+@refund_bp.route('/refunds', methods=['GET', 'POST'])
 def refunds():
     if request.method == 'GET':
         from_date = request.args.get('from_date')
@@ -21,4 +21,12 @@ def refunds():
         )
 
         return make_response(jsonify(refunds),200)
+    
+    elif request.method == 'POST':
+
+        refunds_json = request.json
+        refunds = RefundSchema(many=True).load(data=refunds_json)
+        msg, code = insert_refunds_database(refunds)
+
+        return make_response(jsonify(msg), code)
     
