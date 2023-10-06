@@ -1,8 +1,6 @@
 from marshmallow import fields, post_load
-
 from .transaction import Transaction, TransactionSchema
 from .transaction_type import TransactionType
-
 
 class Order(Transaction):
     def __init__(self, order_id, merchant_id, purchase_date, asin, quantity, sales_channel, status, price, comm_logistica, comm_venditore, costo_prodotto, iva, net):

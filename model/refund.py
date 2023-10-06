@@ -1,5 +1,4 @@
 from marshmallow import post_load, fields
-
 from .transaction import Transaction, TransactionSchema
 from .transaction_type import TransactionType
 
