@@ -2,6 +2,7 @@ import psycopg2
 import json
 from datetime import datetime, timezone
 from model.order import Order
+from model.refund import Refund
 
 def load_credentials():
     try:
@@ -76,4 +77,22 @@ def delete_orders_database(order_ids):
     except(Exception, psycopg2.Error) as err:
         return {'msg': "Error while interacting with PostgreSQL...\n",'err': str(err)}, 400
 
+def get_refunds_database(from_date, to_date, asin):
 
+    from_date = datetime.strptime(from_date, "%Y-%m-%d").astimezone(timezone.utc)
+    to_date = datetime.now().astimezone(timezone.utc) if to_date is None else datetime.strptime(to_date, "%Y-%m-%d").astimezone(timezone.utc) 
+    refunds = []
+    credentials = load_credentials()
+    query_asin = f"and asin = '{asin}'" if asin else ""
+
+    print(f'Getting refunds from {from_date} to {to_date}')
+    conn = psycopg2.connect(f"dbname={credentials.get('dbname')} user={credentials.get('user')} host='{credentials.get('host')}' password='{credentials.get('password')}'")
+    cur = conn.cursor()
+    cur.execute(f"SELECT * FROM refunds where purchase_date >= '{from_date}' and purchase_date < '{to_date}' {query_asin}")
+    ret = cur.fetchall()
+    
+    for refund_db in ret:
+        refund = Refund(refund_db[0], refund_db[1], refund_db[2], refund_db[3], refund_db[4], refund_db[5], refund_db[6], refund_db[7])
+        refunds.append(refund)
+    print(len(refunds))
+    return refunds
