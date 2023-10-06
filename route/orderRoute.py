@@ -1,12 +1,12 @@
 from flask import Blueprint, make_response, jsonify, request
 from model.order import OrderSchema
 from model.transaction_type import TransactionType
-from database.query import get_orders_database, insert_orders_database
+from database.query import get_orders_database, insert_orders_database, delete_orders_database
 
 order_bp = Blueprint('order_bp', __name__)
 
-@order_bp.route('/orders', methods=['GET','POST'])
-def get_orders():
+@order_bp.route('/orders', methods=['GET','POST', 'DELETE'])
+def orders():
 
     if request.method == 'GET':
         from_date = request.args.get('from_date')
@@ -28,5 +28,11 @@ def get_orders():
         orders_json = request.json
         order = OrderSchema(many=True).load(data=orders_json)
         msg, code = insert_orders_database(order)
+
+        return make_response(jsonify(msg), code)
+    
+    elif request.method == 'DELETE':
+        order_ids = request.json['order_ids']
+        msg, code = delete_orders_database(order_ids)
 
         return make_response(jsonify(msg), code)

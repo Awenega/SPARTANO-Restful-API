@@ -57,6 +57,23 @@ def insert_orders_database(orders):
     try:
         cur.execute(sqlTxt)
         conn.commit()
-        return {'msg': "Database Updated"}, 200
+        return {'msg': f"Database updated with {len(orders)} insertions"}, 200
     except(Exception, psycopg2.Error) as err:
         return {'msg': "Error while interacting with PostgreSQL...\n",'err': str(err)}, 400
+    
+def delete_orders_database(order_ids):
+    print(f'Deleting {len(order_ids)} orders in database')
+    credentials = load_credentials()
+    conn = psycopg2.connect(f"dbname={credentials.get('dbname')} user={credentials.get('user')} host='{credentials.get('host')}' password='{credentials.get('password')}'")
+    cur = conn.cursor()
+
+    placeholders = ",".join(["%s"] * len(order_ids))
+    delete_query = f"DELETE FROM orders WHERE order_id IN ({placeholders})"
+    try:
+        cur.execute(delete_query, tuple(order_ids))
+        conn.commit()
+        return {'msg': f"Database updated with {len(order_ids)} deletetions"}, 200
+    except(Exception, psycopg2.Error) as err:
+        return {'msg': "Error while interacting with PostgreSQL...\n",'err': str(err)}, 400
+
+
