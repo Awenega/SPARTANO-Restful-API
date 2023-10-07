@@ -1,6 +1,5 @@
 from flask import Blueprint, make_response, jsonify, request
 from model.refund import RefundSchema
-from model.transaction_type import TransactionType
 from database.query import get_refunds_database, insert_refunds_database, delete_refunds_database, delete_all_refunds_database
 
 refund_bp = Blueprint('refund_bp', __name__)
@@ -17,7 +16,7 @@ def refunds():
         transactions = get_refunds_database(from_date, to_date, asin)
         schema = RefundSchema(many=True)
         refunds = schema.dump(
-            filter(lambda t: t.type == TransactionType.REFUND, transactions)
+            # filter(lambda t: t.type == TransactionType.REFUND, transactions)
         )
 
         return make_response(jsonify(refunds),200)

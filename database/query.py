@@ -33,7 +33,8 @@ def get_orders_database(from_date, to_date, asin):
     ret = cur.fetchall()
     
     for order_db in ret:
-        order = Order(order_db[0], order_db[1], order_db[2], order_db[3], order_db[4], order_db[5], order_db[6], order_db[7], order_db[8], order_db[9], order_db[10], order_db[11], order_db[12])
+        orderItem = {'asin': order_db[3], 'quantity': order_db[4], 'price': order_db[7]}
+        order = Order(order_db[0], order_db[1], order_db[2], orderItem, order_db[5], order_db[6])
         orders.append(order)
     print(len(orders))
     return orders
@@ -45,11 +46,14 @@ def insert_orders_database(orders):
     conn = psycopg2.connect(f"dbname={credentials.get('dbname')} user={credentials.get('user')} host='{credentials.get('host')}' password='{credentials.get('password')}'")
     cur = conn.cursor()
 
+    insertion = 0
     for order in orders:
-        tmp = (order.order_id, order.merchant_id, order.purchase_date, order.asin,
-                order.quantity, order.sales_channel, order.status, order.price,  
-                order.comm_logistica, order.comm_venditore, order.costo_prodotto, order.iva, order.net)
-        dataInsertionTuples.append(tmp)
+        for item in order.items:
+            insertion = insertion + 1
+            tmp = (order.order_id, order.merchant_id, order.purchase_date, item.asin,
+                    item.quantity, order.sales_channel, order.status, item.price,  
+                    item.comm_logistica, item.comm_venditore, item.costo_prodotto, item.iva, item.net)
+            dataInsertionTuples.append(tmp)
     dataText = ','.join(cur.mogrify("(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)", row).decode("utf-8") for row in dataInsertionTuples)
     sqlTxt = """INSERT INTO orders VALUES {0} ON CONFLICT (order_id, asin) DO UPDATE SET 
                                             (merchant_id, purchase_date, quantity, sales_channel, status, price,
@@ -60,7 +64,9 @@ def insert_orders_database(orders):
     try:
         cur.execute(sqlTxt)
         conn.commit()
-        return {'msg': f"Database updated with {len(orders)} insertions"}, 200
+        msg = f"Database updated with {str(insertion)} insertions"
+        print(msg)
+        return {'msg': msg}, 200
     except(Exception, psycopg2.Error) as err:
         return {'msg': "Error while interacting with PostgreSQL...\n",'err': str(err)}, 400
     
