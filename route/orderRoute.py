@@ -37,3 +37,4 @@ def delete_all_orders():
     if request.method == 'DELETE':
         msg, code = delete_all_orders_database()
         return make_response(jsonify(msg), code)
+    

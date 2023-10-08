@@ -3,6 +3,7 @@ import json
 from datetime import datetime, timezone
 from model.order import Order
 from model.refund import Refund
+from model.setting import Setting
 
 def load_credentials():
     try:
@@ -51,16 +52,14 @@ def insert_orders_database(orders):
         for item in order.items:
             insertion = insertion + 1
             tmp = (order.order_id, order.merchant_id, order.purchase_date, item.asin,
-                    item.quantity, order.sales_channel, order.status, item.price,  
-                    item.comm_logistica, item.comm_venditore, item.costo_prodotto, item.iva, item.net)
+                    item.quantity, order.sales_channel, order.status, item.price
+                    )
             dataInsertionTuples.append(tmp)
-    dataText = ','.join(cur.mogrify("(%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)", row).decode("utf-8") for row in dataInsertionTuples)
+    dataText = ','.join(cur.mogrify("(%s, %s, %s, %s, %s, %s, %s, %s)", row).decode("utf-8") for row in dataInsertionTuples)
     sqlTxt = """INSERT INTO orders VALUES {0} ON CONFLICT (order_id, asin) DO UPDATE SET 
-                                            (merchant_id, purchase_date, quantity, sales_channel, status, price,
-                                             comm_logistica, comm_venditore, costo_prodotto, iva, net) = 
+                                            (merchant_id, purchase_date, quantity, sales_channel, status, price) = 
                                             (EXCLUDED.merchant_id, EXCLUDED.purchase_date, EXCLUDED.quantity, EXCLUDED.sales_channel, 
-                                            EXCLUDED.status, EXCLUDED.price, EXCLUDED.comm_logistica, EXCLUDED.comm_venditore,
-                                            EXCLUDED.costo_prodotto, EXCLUDED.iva, EXCLUDED.net);""".format(dataText)
+                                            EXCLUDED.status, EXCLUDED.price);""".format(dataText)
     try:
         cur.execute(sqlTxt)
         conn.commit()
@@ -166,6 +165,77 @@ def delete_all_refunds_database():
     cur = conn.cursor()
 
     delete_query = f"DELETE FROM refunds"
+    try:
+        cur.execute(delete_query)
+        conn.commit()
+        return {'msg': f"Database updated"}, 200
+    except(Exception, psycopg2.Error) as err:
+        return {'msg': "Error while interacting with PostgreSQL...\n",'err': str(err)}, 400
+
+# **SETTINGS** #
+
+def get_settings_database(from_date, to_date, asin, sales_channel):
+
+    settings = []
+    credentials = load_credentials()
+    sales_channel_query = f"and sales_channel = '{sales_channel}'" if sales_channel is not None else ''
+
+    print(f'Getting settings from {from_date} to {to_date}')
+    conn = psycopg2.connect(f"dbname={credentials.get('dbname')} user={credentials.get('user')} host='{credentials.get('host')}' password='{credentials.get('password')}'")
+    cur = conn.cursor()
+    cur.execute(f"SELECT * FROM settings where from_date >= '{from_date}' and to_date <= '{to_date}' and asin = '{asin}' {sales_channel_query}")
+    ret = cur.fetchall()
+    
+    for setting_db in ret:
+        setting = Setting(setting_db[0], setting_db[1], setting_db[2], setting_db[3], setting_db[4], setting_db[5], setting_db[6], setting_db[7])
+        settings.append(setting)
+    print(len(settings))
+    return settings
+
+def insert_settings_database(settings):
+    print(f'Inserting {len(settings)} settings in database')
+    dataInsertionTuples = []
+    credentials = load_credentials()
+    conn = psycopg2.connect(f"dbname={credentials.get('dbname')} user={credentials.get('user')} host='{credentials.get('host')}' password='{credentials.get('password')}'")
+    cur = conn.cursor()
+
+    for setting in settings:
+        tmp = (setting.asin, setting.sales_channel, setting.from_date, setting.to_date,
+                setting.costo_prodotto, setting.comm_logistica, setting.comm_venditore, setting.iva)
+        dataInsertionTuples.append(tmp)
+    dataText = ','.join(cur.mogrify("(%s, %s, %s, %s, %s, %s, %s, %s)", row).decode("utf-8") for row in dataInsertionTuples)
+    sqlTxt = """INSERT INTO settings VALUES {0} ON CONFLICT (asin, sales_channel, from_date) DO UPDATE SET 
+                                            (to_date, costo_prodotto, comm_logistica, comm_venditore, iva) = 
+                                            (EXCLUDED.to_date, EXCLUDED.costo_prodotto, EXCLUDED.comm_logistica, 
+                                            EXCLUDED.comm_venditore, EXCLUDED.iva);""".format(dataText)
+    try:
+        cur.execute(sqlTxt)
+        conn.commit()
+        return {'msg': f"Database updated with {str(len(settings))} insertions"}, 200
+    except(Exception, psycopg2.Error) as err:
+        return {'msg': "Error while interacting with PostgreSQL...\n",'err': str(err)}, 400
+
+def delete_settings_database(asin, sales_channel, from_date):
+    print(f'Deleting {asin, sales_channel, from_date} setting in database')
+    credentials = load_credentials()
+    conn = psycopg2.connect(f"dbname={credentials.get('dbname')} user={credentials.get('user')} host='{credentials.get('host')}' password='{credentials.get('password')}'")
+    cur = conn.cursor()
+    
+    delete_query = f"DELETE FROM settings WHERE (asin, sales_channel, from_date) IN (SELECT asin, sales_channel, from_date From settings where asin = '{asin}' and sales_channel = '{sales_channel}' and from_date = '{from_date}')"
+    try:
+        cur.execute(delete_query)
+        conn.commit()
+        return {'msg': f"Deleted from database record {asin, sales_channel, from_date} in setting"}, 200
+    except(Exception, psycopg2.Error) as err:
+        return {'msg': "Error while interacting with PostgreSQL...\n",'err': str(err)}, 400
+
+def delete_all_settings_database():
+    print(f'Deleting all settings in database')
+    credentials = load_credentials()
+    conn = psycopg2.connect(f"dbname={credentials.get('dbname')} user={credentials.get('user')} host='{credentials.get('host')}' password='{credentials.get('password')}'")
+    cur = conn.cursor()
+
+    delete_query = f"DELETE FROM settings"
     try:
         cur.execute(delete_query)
         conn.commit()

@@ -1,6 +1,7 @@
 from flask import Flask
 from route import orderRoute
 from route import refundRoute
+from route import settingRoute
 from route.authorization import authorize_request
 import json
 
@@ -13,6 +14,7 @@ app.config['SECRET_TOKEN'] = secret_token['SECRET_TOKEN']
 with app.app_context():
     app.register_blueprint(orderRoute.order_bp)
     app.register_blueprint(refundRoute.refund_bp)
+    app.register_blueprint(settingRoute.setting_bp)
 
 @app.before_request
 def before_request():

@@ -1,15 +1,10 @@
 from marshmallow import Schema, fields, post_load, EXCLUDE, ValidationError
 
 class Item(object):
-    def __init__(self, orderItem, comm_logistica, comm_venditore, costo_prodotto, iva, net):
+    def __init__(self, orderItem):
         self.asin = orderItem['asin']
         self.quantity = orderItem['quantity']
         self.price = orderItem['price']
-        self.comm_logistica = comm_logistica
-        self.comm_venditore = comm_venditore
-        self.costo_prodotto = costo_prodotto
-        self.iva = iva
-        self.net = net
 
 class Order(object):
     def __init__(self, order_id, merchant_id, purchase_date, orderItem, sales_channel, status):
@@ -20,11 +15,11 @@ class Order(object):
         self.status = status
         self.items = []
         if isinstance(orderItem, dict):
-            item = Item(orderItem, 0.0, 0.0, 0.0, 0.0, 0.0)
+            item = Item(orderItem)
             self.items.append(item)
         else:
             for elem in orderItem:
-                item = Item(elem,  0.0, 0.0, 0.0, 0.0, 0.0)
+                item = Item(elem)
                 self.items.append(item)
         
     def __repr__(self):
@@ -96,11 +91,6 @@ class ItemDbSchema(Schema):
     asin = fields.String()
     quantity = fields.Integer()
     price = fields.Float()
-    comm_logistica = fields.Float()
-    comm_venditore = fields.Float()
-    costo_prodotto = fields.Float()
-    iva = fields.Float()
-    net = fields.Float()
 
 class OrderDbSchema(Schema):
     order_id = fields.String()
