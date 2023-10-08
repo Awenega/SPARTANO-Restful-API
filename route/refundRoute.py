@@ -1,5 +1,5 @@
 from flask import Blueprint, make_response, jsonify, request
-from model.refund import RefundSchema
+from model.refund import RefundSchema, RefundDbSchema
 from database.query import get_refunds_database, insert_refunds_database, delete_refunds_database, delete_all_refunds_database
 
 refund_bp = Blueprint('refund_bp', __name__)
@@ -14,19 +14,16 @@ def refunds():
         asin = request.args.get('asin', None)
 
         transactions = get_refunds_database(from_date, to_date, asin)
-        schema = RefundSchema(many=True)
-        refunds = schema.dump(
-            # filter(lambda t: t.type == TransactionType.REFUND, transactions)
-        )
+        schema = RefundDbSchema(many=True)
+        refunds = schema.dump(transactions)
 
         return make_response(jsonify(refunds),200)
     
     elif request.method == 'POST':
-
         refunds_json = request.json
-        refunds = RefundSchema(many=True).load(data=refunds_json)
-        msg, code = insert_refunds_database(refunds)
+        refunds = RefundSchema(many=True).load(refunds_json)
 
+        msg, code = insert_refunds_database(refunds)
         return make_response(jsonify(msg), code)
     
     elif request.method == 'DELETE':

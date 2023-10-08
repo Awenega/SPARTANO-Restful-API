@@ -81,7 +81,7 @@ def delete_orders_database(order_ids):
     try:
         cur.execute(delete_query, tuple(order_ids))
         conn.commit()
-        return {'msg': f"Database updated with {len(order_ids)} deletetions"}, 200
+        return {'msg': f"Database updated with {str(len(order_ids))} deletetions"}, 200
     except(Exception, psycopg2.Error) as err:
         return {'msg': "Error while interacting with PostgreSQL...\n",'err': str(err)}, 400
 
@@ -116,13 +116,13 @@ def get_refunds_database(from_date, to_date, asin):
     ret = cur.fetchall()
     
     for refund_db in ret:
-        refund = Refund(refund_db[0], refund_db[1], refund_db[2], refund_db[3], refund_db[4], refund_db[5], refund_db[6], refund_db[7])
+        refund = Refund(refund_db[0], refund_db[1], refund_db[2], refund_db[3], refund_db[4], refund_db[5], refund_db[6])
         refunds.append(refund)
     print(len(refunds))
     return refunds
 
 def insert_refunds_database(refunds):
-    print(f'Inserting {len(refunds)} orders in database')
+    print(f'Inserting {len(refunds)} refunds in database')
     dataInsertionTuples = []
     credentials = load_credentials()
     conn = psycopg2.connect(f"dbname={credentials.get('dbname')} user={credentials.get('user')} host='{credentials.get('host')}' password='{credentials.get('password')}'")
@@ -130,17 +130,17 @@ def insert_refunds_database(refunds):
 
     for refund in refunds:
         tmp = (refund.order_id, refund.purchase_date, refund.asin, refund.quantity, 
-               refund.sales_channel, refund.comm_venditore, refund.comm_refund, refund.loss)
+               refund.sales_channel, refund.comm_venditore, refund.comm_refund)
         dataInsertionTuples.append(tmp)
-    dataText = ','.join(cur.mogrify("(%s, %s, %s, %s, %s, %s, %s, %s)", row).decode("utf-8") for row in dataInsertionTuples)
+    dataText = ','.join(cur.mogrify("(%s, %s, %s, %s, %s, %s, %s)", row).decode("utf-8") for row in dataInsertionTuples)
     sqlTxt = """INSERT INTO refunds VALUES {0} ON CONFLICT (order_id, asin) DO UPDATE SET 
-                                            (purchase_date, quantity, sales_channel, comm_venditore,comm_refund, loss) = 
+                                            (purchase_date, quantity, sales_channel, comm_venditore, comm_refund) = 
                                             (EXCLUDED.purchase_date, EXCLUDED.quantity, EXCLUDED.sales_channel, 
-                                            EXCLUDED.comm_venditore, EXCLUDED.comm_refund, EXCLUDED.loss);""".format(dataText)
+                                            EXCLUDED.comm_venditore, EXCLUDED.comm_refund);""".format(dataText)
     try:
         cur.execute(sqlTxt)
         conn.commit()
-        return {'msg': f"Database updated with {len(refunds)} insertions"}, 200
+        return {'msg': f"Database updated with {str(len(refunds))} insertions"}, 200
     except(Exception, psycopg2.Error) as err:
         return {'msg': "Error while interacting with PostgreSQL...\n",'err': str(err)}, 400
 
@@ -155,7 +155,7 @@ def delete_refunds_database(order_ids):
     try:
         cur.execute(delete_query, tuple(order_ids))
         conn.commit()
-        return {'msg': f"Database updated with {len(order_ids)} deletetions"}, 200
+        return {'msg': f"Database updated with {str(len(order_ids))} deletetions"}, 200
     except(Exception, psycopg2.Error) as err:
         return {'msg': "Error while interacting with PostgreSQL...\n",'err': str(err)}, 400
 

@@ -1,4 +1,4 @@
-from flask import Flask, request
+from flask import Flask
 from route import orderRoute
 from route import refundRoute
 from route.authorization import authorize_request
