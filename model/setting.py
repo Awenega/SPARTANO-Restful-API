@@ -4,8 +4,8 @@ class Setting(object):
     def __init__(self, asin, sales_channel, from_date, to_date, costo_prodotto, comm_logistica, comm_venditore, iva):
         self.asin = asin
         self.sales_channel = sales_channel
-        self.from_date =  from_date
-        self.to_date =  to_date
+        self.from_date = from_date
+        self.to_date = to_date
         self.costo_prodotto =  costo_prodotto
         self.comm_logistica = comm_logistica
         self.comm_venditore = comm_venditore
@@ -30,8 +30,8 @@ class SettingSchema(Schema):
 class SettingDbSchema(Schema):
     asin = fields.String()
     sales_channel = fields.String()
-    from_date = fields.Date()
-    to_date = fields.Date()
+    from_date = fields.DateTime()
+    to_date = fields.DateTime()
     costo_prodotto = fields.Float()
     comm_logistica = fields.Float()
     comm_venditore = fields.Float()

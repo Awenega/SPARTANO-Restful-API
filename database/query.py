@@ -30,11 +30,22 @@ def get_orders_database(from_date, to_date, asin):
     print(f'Getting orders from {from_date} to {to_date}')
     conn = psycopg2.connect(f"dbname={credentials.get('dbname')} user={credentials.get('user')} host='{credentials.get('host')}' password='{credentials.get('password')}'")
     cur = conn.cursor()
-    cur.execute(f"SELECT * FROM orders where purchase_date >= '{from_date}' and purchase_date < '{to_date}' {query_asin}")
+    query = f'''
+            SELECT *
+            FROM orders
+            JOIN settings ON orders.asin = settings.asin AND  
+                orders.sales_channel = settings.sales_channel AND 
+                orders.purchase_date AT time zone 'utc' AT time zone 'cest'
+                BETWEEN settings.from_date AND settings.to_date
+            WHERE orders.quantity <> 0 AND orders.sales_channel <> 'Cancelled' AND
+            orders.purchase_date BETWEEN '{from_date}' AND '{to_date}' {query_asin} 
+            '''
+    cur.execute(query)
     ret = cur.fetchall()
     
     for order_db in ret:
-        orderItem = {'asin': order_db[3], 'quantity': order_db[4], 'price': order_db[7]}
+        orderSettings = {'costo_prodotto': order_db[12], 'comm_logistica': order_db[13], 'comm_venditore': order_db[14], 'iva': order_db[15]}
+        orderItem = {'asin': order_db[3], 'quantity': order_db[4], 'price': order_db[7], 'settings': orderSettings}
         order = Order(order_db[0], order_db[1], order_db[2], orderItem, order_db[5], order_db[6])
         orders.append(order)
     print(len(orders))
@@ -97,7 +108,7 @@ def delete_all_orders_database():
         return {'msg': f"Database updated"}, 200
     except(Exception, psycopg2.Error) as err:
         return {'msg': "Error while interacting with PostgreSQL...\n",'err': str(err)}, 400
-    
+
 # **REFUNDS** #
 
 def get_refunds_database(from_date, to_date, asin):
@@ -242,3 +253,4 @@ def delete_all_settings_database():
         return {'msg': f"Database updated"}, 200
     except(Exception, psycopg2.Error) as err:
         return {'msg': "Error while interacting with PostgreSQL...\n",'err': str(err)}, 400
+

@@ -5,6 +5,11 @@ class Item(object):
         self.asin = orderItem['asin']
         self.quantity = orderItem['quantity']
         self.price = orderItem['price']
+        if 'settings' in orderItem:
+            self.costo_prodotto = orderItem['settings']['costo_prodotto']
+            self.comm_logistica = orderItem['settings']['comm_logistica']
+            self.comm_venditore = orderItem['settings']['comm_venditore']
+            self.iva = orderItem['settings']['iva']
 
 class Order(object):
     def __init__(self, order_id, merchant_id, purchase_date, orderItem, sales_channel, status):
@@ -91,6 +96,10 @@ class ItemDbSchema(Schema):
     asin = fields.String()
     quantity = fields.Integer()
     price = fields.Float()
+    costo_prodotto = fields.Float()
+    comm_logistica = fields.Float()
+    comm_venditore = fields.Float()
+    iva = fields.Float()
 
 class OrderDbSchema(Schema):
     order_id = fields.String()
