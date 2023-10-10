@@ -5,14 +5,18 @@ class Item(object):
         self.asin = orderItem['asin']
         self.quantity = orderItem['quantity']
         self.price = orderItem['price']
-        if 'settings' in orderItem:
-            self.costo_prodotto = orderItem['settings']['costo_prodotto']
-            self.comm_logistica = orderItem['settings']['comm_logistica']
-            self.comm_venditore = orderItem['settings']['comm_venditore']
-            self.iva = orderItem['settings']['iva']
+        if 'net' in orderItem:
+            self.costo_prodotto = orderItem['costo_prodotto']
+            self.comm_logistica = orderItem['comm_logistica']
+            self.comm_venditore = orderItem['comm_venditore']
+            self.iva = orderItem['iva']
+            self.quantity_refund = orderItem['quantity_refund']
+            self.comm_venditore_refund = orderItem['comm_venditore_refund']
+            self.comm_refund = orderItem['comm_refund']
+            self.net = orderItem['net']
 
 class Order(object):
-    def __init__(self, order_id, merchant_id, purchase_date, orderItem, sales_channel, status):
+    def __init__(self, order_id, merchant_id, purchase_date, sales_channel, status, orderItem):
         self.order_id = order_id
         self.merchant_id = merchant_id
         self.purchase_date = purchase_date
@@ -89,7 +93,7 @@ class OrderSchema(Schema):
         order_info = data.get('Order')
         return Order(
             order_info['AmazonOrderID'], order_info['MerchantOrderID'], order_info['PurchaseDate'],
-            order_info['OrderItem'], order_info['SalesChannel'], order_info['OrderStatus']
+            order_info['SalesChannel'], order_info['OrderStatus'], order_info['OrderItem']
             )
 
 class ItemDbSchema(Schema):
@@ -100,13 +104,16 @@ class ItemDbSchema(Schema):
     comm_logistica = fields.Float()
     comm_venditore = fields.Float()
     iva = fields.Float()
+    quantity_refund = fields.Integer()
+    comm_venditore_refund = fields.Float()
+    comm_refund = fields.Float()
+    net = fields.Float()
 
 class OrderDbSchema(Schema):
     order_id = fields.String()
     merchant_id = fields.String()
-    purchase_date = fields.DateTime()
-    items = fields.Nested(ItemDbSchema, many=True)
+    purchase_date = fields.Date()
     sales_channel = fields.String()
     status = fields.String()
-    
+    items = fields.Nested(ItemDbSchema, many=True)
     

@@ -31,22 +31,37 @@ def get_orders_database(from_date, to_date, asin):
     conn = psycopg2.connect(f"dbname={credentials.get('dbname')} user={credentials.get('user')} host='{credentials.get('host')}' password='{credentials.get('password')}'")
     cur = conn.cursor()
     query = f'''
-            SELECT *
-            FROM orders
-            JOIN settings ON orders.asin = settings.asin AND  
-                orders.sales_channel = settings.sales_channel AND 
-                orders.purchase_date AT time zone 'utc' AT time zone 'cest'
-                BETWEEN settings.from_date AND settings.to_date
-            WHERE orders.quantity <> 0 AND orders.sales_channel <> 'Cancelled' AND
-            orders.purchase_date BETWEEN '{from_date}' AND '{to_date}' {query_asin} 
-            '''
+        SELECT orders.order_id, orders.merchant_id, (orders.purchase_date AT time zone 'utc' AT time zone 'cest')::DATE, orders.asin, orders.quantity, orders.sales_channel, orders.status, 
+        orders.price, settings.costo_prodotto, settings.comm_logistica, settings.comm_venditore, settings.iva,
+        Coalesce (refunds.quantity, 0) as quantity_refund, Coalesce( refunds.comm_venditore, 0.00) as comm_venditore_refund, 
+        Coalesce (refunds.comm_refund, 0.00) as comm_refund, 
+        CASE
+            WHEN refunds.quantity IS NULL THEN sum ((price/iva) - (orders.quantity*(costo_prodotto + comm_logistica)) - (price*settings.comm_venditore))
+            WHEN refunds.quantity > 0 THEN sum(comm_refund - (refunds.quantity*settings.comm_logistica))
+        END 
+        as net
+        FROM orders
+        JOIN settings ON orders.asin = settings.asin AND  
+            orders.sales_channel = settings.sales_channel AND 
+            orders.purchase_date AT time zone 'utc' AT time zone 'cest'
+            BETWEEN settings.from_date AND settings.to_date
+        LEFT JOIN refunds ON orders.order_id = refunds.order_id AND orders.asin = refunds.asin
+        WHERE orders.quantity <> 0 AND orders.sales_channel <> 'Cancelled' AND
+        orders.purchase_date BETWEEN '{from_date}' AND '{to_date}' {query_asin}
+        GROUP BY orders.order_id, orders.merchant_id, orders.purchase_date, orders.asin, orders.quantity, orders.sales_channel, orders.status, 
+        orders.price, settings.costo_prodotto, settings.comm_logistica, settings.comm_venditore, settings.iva, refunds.quantity, comm_venditore_refund, comm_refund
+    '''
     cur.execute(query)
     ret = cur.fetchall()
     
     for order_db in ret:
-        orderSettings = {'costo_prodotto': order_db[12], 'comm_logistica': order_db[13], 'comm_venditore': order_db[14], 'iva': order_db[15]}
-        orderItem = {'asin': order_db[3], 'quantity': order_db[4], 'price': order_db[7], 'settings': orderSettings}
-        order = Order(order_db[0], order_db[1], order_db[2], orderItem, order_db[5], order_db[6])
+        orderItem = {
+            'asin': order_db[3], 'quantity': order_db[4], 'price': order_db[7], 
+            'costo_prodotto': order_db[8], 'comm_logistica': order_db[9], 
+            'comm_venditore': order_db[10], 'iva': order_db[11], 'quantity_refund': order_db[12],
+            'comm_venditore_refund': order_db[13], 'comm_refund': order_db[14], 'net': order_db[15]
+            }
+        order = Order(order_db[0], order_db[1], order_db[2], order_db[5], order_db[6], orderItem)
         orders.append(order)
     print(len(orders))
     return orders
@@ -123,7 +138,7 @@ def get_refunds_database(from_date, to_date, asin):
     conn = psycopg2.connect(f"dbname={credentials.get('dbname')} user={credentials.get('user')} host='{credentials.get('host')}' password='{credentials.get('password')}'")
     cur = conn.cursor()
     query = f'''
-            SELECT refunds.order_id, refunds.purchase_date, refunds.asin, refunds.quantity, refunds.sales_channel, 
+            SELECT refunds.order_id, orders.purchase_date, refunds.asin, refunds.quantity, refunds.sales_channel, 
                     orders.price, settings.costo_prodotto, settings.comm_logistica, refunds.comm_venditore, refunds.comm_refund
             FROM refunds
             JOIN settings ON refunds.asin = settings.asin AND  
@@ -132,7 +147,7 @@ def get_refunds_database(from_date, to_date, asin):
                 BETWEEN settings.from_date AND settings.to_date
             JOIN orders ON refunds.order_id = orders.order_id AND
                 refunds.asin = orders.asin
-            WHERE refunds.purchase_date BETWEEN '{from_date}' AND '{to_date} {query_asin}'
+            WHERE orders.purchase_date BETWEEN '{from_date}' AND '{to_date} {query_asin}'
             '''
     cur.execute(query)
     ret = cur.fetchall()
@@ -265,4 +280,3 @@ def delete_all_settings_database():
         return {'msg': f"Database updated"}, 200
     except(Exception, psycopg2.Error) as err:
         return {'msg': "Error while interacting with PostgreSQL...\n",'err': str(err)}, 400
-

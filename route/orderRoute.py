@@ -16,7 +16,6 @@ def orders():
         transactions = get_orders_database(from_date, to_date, asin)
         schema = OrderDbSchema(many=True)
         orders = schema.dump(transactions)
-
         return make_response(jsonify(orders),200)
     
     elif request.method == 'POST':
@@ -37,4 +36,3 @@ def delete_all_orders():
     if request.method == 'DELETE':
         msg, code = delete_all_orders_database()
         return make_response(jsonify(msg), code)
-    
