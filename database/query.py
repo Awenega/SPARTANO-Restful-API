@@ -25,7 +25,7 @@ def get_orders_database(from_date, to_date, asin):
     to_date = datetime.now().astimezone(timezone.utc) if to_date is None else datetime.strptime(to_date, "%Y-%m-%d").astimezone(timezone.utc) 
     orders = []
     credentials = load_credentials()
-    query_asin = f"and asin = '{asin}'" if asin else ""
+    query_asin = f"and orders.asin = '{asin}'" if asin else ""
 
     print(f'Getting orders from {from_date} to {to_date}')
     conn = psycopg2.connect(f"dbname={credentials.get('dbname')} user={credentials.get('user')} host='{credentials.get('host')}' password='{credentials.get('password')}'")
@@ -117,16 +117,28 @@ def get_refunds_database(from_date, to_date, asin):
     to_date = datetime.now().astimezone(timezone.utc) if to_date is None else datetime.strptime(to_date, "%Y-%m-%d").astimezone(timezone.utc) 
     refunds = []
     credentials = load_credentials()
-    query_asin = f"and asin = '{asin}'" if asin else ""
+    query_asin = f"and refunds.asin = '{asin}'" if asin else ""
 
     print(f'Getting refunds from {from_date} to {to_date}')
     conn = psycopg2.connect(f"dbname={credentials.get('dbname')} user={credentials.get('user')} host='{credentials.get('host')}' password='{credentials.get('password')}'")
     cur = conn.cursor()
-    cur.execute(f"SELECT * FROM refunds where purchase_date >= '{from_date}' and purchase_date < '{to_date}' {query_asin}")
+    query = f'''
+            SELECT refunds.order_id, refunds.purchase_date, refunds.asin, refunds.quantity, refunds.sales_channel, 
+                    orders.price, settings.costo_prodotto, settings.comm_logistica, refunds.comm_venditore, refunds.comm_refund
+            FROM refunds
+            JOIN settings ON refunds.asin = settings.asin AND  
+                refunds.sales_channel = settings.sales_channel AND 
+                refunds.purchase_date AT time zone 'utc' AT time zone 'cest'
+                BETWEEN settings.from_date AND settings.to_date
+            JOIN orders ON refunds.order_id = orders.order_id AND
+                refunds.asin = orders.asin
+            WHERE refunds.purchase_date BETWEEN '{from_date}' AND '{to_date} {query_asin}'
+            '''
+    cur.execute(query)
     ret = cur.fetchall()
     
     for refund_db in ret:
-        refund = Refund(refund_db[0], refund_db[1], refund_db[2], refund_db[3], refund_db[4], refund_db[5], refund_db[6])
+        refund = Refund(refund_db[0], refund_db[1], refund_db[2], refund_db[3], refund_db[4], refund_db[8], refund_db[9], refund_db[5], refund_db[6], refund_db[7])
         refunds.append(refund)
     print(len(refunds))
     return refunds

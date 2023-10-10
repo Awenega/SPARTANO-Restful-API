@@ -1,7 +1,7 @@
 from marshmallow import post_load, fields, Schema
 
 class Refund(object):
-    def __init__(self, order_id, purchase_date, asin, quantity, sales_channel, comm_venditore, comm_refund):
+    def __init__(self, order_id, purchase_date, asin, quantity, sales_channel, comm_venditore, comm_refund, price = None, costo_prodotto = None, comm_logistica=None):
         self.order_id = order_id
         self.purchase_date = purchase_date
         self.sales_channel = sales_channel
@@ -9,6 +9,10 @@ class Refund(object):
         self.quantity =  quantity
         self.comm_venditore = comm_venditore
         self.comm_refund = comm_refund
+        if any(var is not None for var in (price, costo_prodotto, comm_logistica)):
+            self.price = price
+            self.costo_prodotto = costo_prodotto
+            self.comm_logistica = comm_logistica
 
     def __repr__(self):
         return '<Refund(order_id={self.order_id!r})>'.format(self=self)
@@ -40,3 +44,7 @@ class RefundDbSchema(Schema):
     sales_channel = fields.String()
     comm_venditore = fields.Float()
     comm_refund = fields.Float()
+    price = fields.Float()
+    costo_prodotto = fields.Float()
+    comm_logistica = fields.Float()
+    
